@@ -190,11 +190,19 @@ def compute_loss(combined_embeds, vis_mask, input_ids, attention_mask,
     full_labels = torch.cat([vis_labels, labels.to(device)], dim=1)
 
     out = llm(
-        inputs_embeds=combined_embeds.half(),
+        inputs_embeds=combined_embeds,
         attention_mask=full_mask,
         labels=full_labels,
     )
     return out.loss
+
+
+def get_llm_dtype(device: str) -> torch.dtype:
+    if device == "cuda" and torch.cuda.is_bf16_supported():
+        return torch.bfloat16
+    if device == "cuda":
+        return torch.float16
+    return torch.float32
 
 
 # ─────────────────────────────────────────────
@@ -211,8 +219,11 @@ def train_stage1(args):
         p.requires_grad = False
     vit.eval()
 
+    llm_dtype = get_llm_dtype(device)
     llm = AutoModelForCausalLM.from_pretrained(
-        args.base_model, torch_dtype=torch.float16, device_map="auto"
+        args.base_model,
+        dtype=llm_dtype,
+        device_map="auto" if device == "cuda" else None,
     )
     if args.lora_ckpt:
         llm = PeftModel.from_pretrained(llm, args.lora_ckpt)
@@ -227,7 +238,7 @@ def train_stage1(args):
     projector = PatchProjector(
         vit_dim=vit.config.hidden_size,
         llm_dim=llm.config.hidden_size,
-    ).to(device).half()
+    ).to(device)
 
     captions_path = os.path.join(args.data_dir, "captions.jsonl")
     if not os.path.exists(captions_path):
@@ -249,9 +260,13 @@ def train_stage1(args):
     for epoch in range(args.epochs):
         projector.train()
         total_loss = 0.0
+        valid_steps = 0
+        skipped_steps = 0
 
-        for batch in tqdm(loader, desc=f"Epoch {epoch+1}/{args.epochs}"):
-            optimizer.zero_grad()
+        for step, batch in enumerate(
+            tqdm(loader, desc=f"Epoch {epoch+1}/{args.epochs}"), start=1
+        ):
+            optimizer.zero_grad(set_to_none=True)
 
             combined, vis_mask = build_combined_embeds(
                 batch["pixel_values"], batch["input_ids"],
@@ -267,14 +282,30 @@ def train_stage1(args):
                 batch["input_ids"], batch["attention_mask"],
                 labels, llm, device
             )
+
+            if not torch.isfinite(loss):
+                skipped_steps += 1
+                logger.warning(
+                    f"Epoch {epoch+1} Batch {step}/{len(loader)} — non-finite loss; skipping batch."
+                )
+                continue
+
+            logger.info(
+                f"Epoch {epoch+1} Batch {step}/{len(loader)} — loss: {loss.item():.6f}"
+            )
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(projector.parameters(), 1.0)
             optimizer.step()
             scheduler.step()
             total_loss += loss.item()
+            valid_steps += 1
 
-        avg = total_loss / len(loader)
-        logger.info(f"Epoch {epoch+1} — loss: {avg:.4f}")
+        avg = total_loss / max(valid_steps, 1)
+        logger.info(
+            f"Epoch {epoch+1} — loss: {avg:.4f} "
+            f"(valid_steps={valid_steps}, skipped_steps={skipped_steps})"
+        )
 
     ckpt_path = os.path.join(args.output_dir, "projector_stage1.pt")
     torch.save(projector.state_dict(), ckpt_path)
@@ -296,8 +327,11 @@ def train_stage2(args):
     vit.eval()
 
     # Load base LLM + existing agriculture LoRA
+    llm_dtype = get_llm_dtype(device)
     llm = AutoModelForCausalLM.from_pretrained(
-        args.base_model, torch_dtype=torch.float16, device_map="auto"
+        args.base_model,
+        dtype=llm_dtype,
+        device_map="auto" if device == "cuda" else None,
     )
     if args.lora_ckpt:
         llm = PeftModel.from_pretrained(llm, args.lora_ckpt)
@@ -321,7 +355,7 @@ def train_stage2(args):
     projector = PatchProjector(
         vit_dim=vit.config.hidden_size,
         llm_dim=llm.config.hidden_size,
-    ).to(device).half()
+    ).to(device)
     if args.projector_ckpt:
         if not os.path.exists(args.projector_ckpt):
             raise FileNotFoundError(
@@ -368,9 +402,13 @@ def train_stage2(args):
         projector.train()
         llm.train()
         total_loss = 0.0
+        valid_steps = 0
+        skipped_steps = 0
 
-        for batch in tqdm(loader, desc=f"Epoch {epoch+1}/{args.epochs}"):
-            optimizer.zero_grad()
+        for step, batch in enumerate(
+            tqdm(loader, desc=f"Epoch {epoch+1}/{args.epochs}"), start=1
+        ):
+            optimizer.zero_grad(set_to_none=True)
 
             combined, vis_mask = build_combined_embeds(
                 batch["pixel_values"], batch["input_ids"],
@@ -382,14 +420,30 @@ def train_stage2(args):
                 batch["input_ids"], batch["attention_mask"],
                 batch["labels"], llm, device
             )
+
+            if not torch.isfinite(loss):
+                skipped_steps += 1
+                logger.warning(
+                    f"Epoch {epoch+1} Batch {step}/{len(loader)} — non-finite loss; skipping batch."
+                )
+                continue
+
+            logger.info(
+                f"Epoch {epoch+1} Batch {step}/{len(loader)} — loss: {loss.item():.6f}"
+            )
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(trainable, 1.0)
             optimizer.step()
             scheduler.step()
             total_loss += loss.item()
+            valid_steps += 1
 
-        avg = total_loss / len(loader)
-        logger.info(f"Epoch {epoch+1} — loss: {avg:.4f}")
+        avg = total_loss / max(valid_steps, 1)
+        logger.info(
+            f"Epoch {epoch+1} — loss: {avg:.4f} "
+            f"(valid_steps={valid_steps}, skipped_steps={skipped_steps})"
+        )
 
         if avg < best_loss:
             best_loss = avg
