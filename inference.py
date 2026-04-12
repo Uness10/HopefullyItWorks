@@ -73,8 +73,29 @@ def load_pipeline(args):
     if args.visual_lora_ckpt:
         print(f"[info] Loading visual LoRA from: {args.visual_lora_ckpt}")
         llm.load_adapter(args.visual_lora_ckpt, adapter_name="visual")
-        # Merge both adapters so both are active during inference
-        llm.set_adapter(["agri", "visual"])
+
+    # Activate adapters safely using merge_and_unload() — most robust
+    # approach across PEFT versions; avoids set_adapter(list) TypeError
+    # and add_weighted_adapter() cancellation issues.
+    if args.agri_lora_ckpt and args.visual_lora_ckpt:
+        # Step 1: bake agri weights permanently into the base model
+        llm.set_adapter("agri")
+        llm = llm.merge_and_unload()
+        # Step 2: re-wrap with visual LoRA on top of the merged base
+        from peft import PeftModel as _PeftModel
+        llm = _PeftModel.from_pretrained(
+            llm,
+            args.visual_lora_ckpt,
+            adapter_name="visual",
+        )
+        llm.set_adapter("visual")
+        print("[info] Adapters stacked: agri merged into base, visual active on top")
+    elif args.agri_lora_ckpt:
+        llm.set_adapter("agri")
+        print("[info] Agriculture LoRA active")
+    elif args.visual_lora_ckpt:
+        llm.set_adapter("visual")
+        print("[info] Visual LoRA active")
 
     llm.eval()
 
@@ -150,6 +171,12 @@ def answer(image_path, question, vit, vit_proc, llm, projector, tokenizer, devic
         vit, vit_proc, llm, projector, tokenizer, device
     )
 
+    # Stop at eos or [END] sentinel the model was trained with
+    stop_ids = [tokenizer.eos_token_id]
+    end_token = tokenizer.encode("[END]", add_special_tokens=False)
+    if end_token:
+        stop_ids.extend(end_token)
+
     output_ids = llm.generate(
         inputs_embeds=combined,
         attention_mask=full_mask,
@@ -157,10 +184,21 @@ def answer(image_path, question, vit, vit_proc, llm, projector, tokenizer, devic
         temperature=temperature,
         do_sample=do_sample,
         pad_token_id=tokenizer.eos_token_id,
+        eos_token_id=stop_ids,
+        repetition_penalty=1.3,   # penalise repeating n-grams
+        no_repeat_ngram_size=5,   # forbid any 5-gram from appearing twice
     )
 
-    # Decode only the newly generated tokens
     response = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+
+    # Post-process: trim at any known VQA format bleed-through markers.
+    # The model sometimes continues generating the next Q&A pair from
+    # training data — cut everything from the first such marker onward.
+    stop_strings = ["[END]", "What ", "How ", "Why ", "Is ", "Are ", "[INST]"]
+    for marker in stop_strings:
+        if marker in response:
+            response = response.split(marker)[0]
+
     return response.strip()
 
 
