@@ -1,0 +1,73 @@
+[hf] No HF token found. Downloads may be slower. Set HF_TOKEN for better reliability.
+[data] Loading KisanVaani/agriculture-qa-english-only (train)
+README.md: 1.74kB [00:00, 6.37MB/s]
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+data/train-00000-of-00001.parquet: 100% 1.97M/1.97M [00:01<00:00, 1.76MB/s]
+Generating train split: 100% 22615/22615 [00:00<00:00, 348272.79 examples/s]
+Map: 100% 22615/22615 [00:01<00:00, 20942.78 examples/s]
+Filter: 100% 22615/22615 [00:00<00:00, 308064.15 examples/s]
+[data] KisanVaani/agriculture-qa-english-only usable rows: 22574
+Creating json from Arrow format: 100% 8/8 [00:00<00:00, 137.76ba/s]
+[data] Wrote merged training JSONL: data/processed/agri_train.jsonl
+[data] Total rows: 8000
+config.json: 100% 659/659 [00:00<00:00, 4.39MB/s]
+tokenizer_config.json: 7.30kB [00:00, 23.6MB/s]
+vocab.json: 2.78MB [00:00, 72.7MB/s]
+merges.txt: 1.67MB [00:00, 92.9MB/s]
+tokenizer.json: 7.03MB [00:00, 152MB/s]
+model.safetensors: 100% 988M/988M [00:04<00:00, 235MB/s]
+Loading weights: 100% 290/290 [00:00<00:00, 718.57it/s, Materializing param=model.norm.weight]
+generation_config.json: 100% 242/242 [00:00<00:00, 1.57MB/s]
+trainable params: 8,798,208 || all params: 502,830,976 || trainable%: 1.7497
+Map: 100% 8000/8000 [00:01<00:00, 6662.81 examples/s]
+[data] Train rows: 8000 | Val rows: 0 (disabled)
+Map: 100% 8000/8000 [00:01<00:00, 4912.34 examples/s]
+{'loss': '3.449', 'grad_norm': '6.398', 'learning_rate': '0.0001385', 'epoch': '0.02'}
+{'loss': '1.474', 'grad_norm': '1.736', 'learning_rate': '0.0001999', 'epoch': '0.04'}
+{'loss': '1.378', 'grad_norm': '1.272', 'learning_rate': '0.0001993', 'epoch': '0.06'}
+{'loss': '1.345', 'grad_norm': '1.111', 'learning_rate': '0.0001983', 'epoch': '0.08'}
+{'loss': '1.27', 'grad_norm': '1.068', 'learning_rate': '0.0001967', 'epoch': '0.1'}
+{'loss': '1.238', 'grad_norm': '1.157', 'learning_rate': '0.0001946', 'epoch': '0.12'}
+{'loss': '1.174', 'grad_norm': '1.18', 'learning_rate': '0.000192', 'epoch': '0.14'}
+{'loss': '1.142', 'grad_norm': '1.353', 'learning_rate': '0.000189', 'epoch': '0.16'}
+{'loss': '1.133', 'grad_norm': '1.294', 'learning_rate': '0.0001854', 'epoch': '0.18'}
+{'loss': '1.119', 'grad_norm': '1.244', 'learning_rate': '0.0001815', 'epoch': '0.2'}
+{'loss': '1.056', 'grad_norm': '1.245', 'learning_rate': '0.0001771', 'epoch': '0.22'}
+{'loss': '1.045', 'grad_norm': '1.3', 'learning_rate': '0.0001723', 'epoch': '0.24'}
+{'loss': '1.143', 'grad_norm': '1.276', 'learning_rate': '0.0001672', 'epoch': '0.26'}
+{'loss': '0.9077', 'grad_norm': '1.551', 'learning_rate': '0.0001617', 'epoch': '0.28'}
+{'loss': '0.9272', 'grad_norm': '1.57', 'learning_rate': '0.0001559', 'epoch': '0.3'}
+{'loss': '0.9578', 'grad_norm': '1.355', 'learning_rate': '0.0001498', 'epoch': '0.32'}
+{'loss': '0.9085', 'grad_norm': '1.357', 'learning_rate': '0.0001434', 'epoch': '0.34'}
+{'loss': '0.9081', 'grad_norm': '1.478', 'learning_rate': '0.0001369', 'epoch': '0.36'}
+{'loss': '0.9032', 'grad_norm': '1.875', 'learning_rate': '0.0001301', 'epoch': '0.38'}
+{'loss': '0.8502', 'grad_norm': '1.521', 'learning_rate': '0.0001232', 'epoch': '0.4'}
+{'loss': '0.8839', 'grad_norm': '1.473', 'learning_rate': '0.0001161', 'epoch': '0.42'}
+{'loss': '0.8414', 'grad_norm': '1.278', 'learning_rate': '0.000109', 'epoch': '0.44'}
+{'loss': '0.8539', 'grad_norm': '1.213', 'learning_rate': '0.0001018', 'epoch': '0.46'}
+{'loss': '0.7743', 'grad_norm': '1.661', 'learning_rate': '9.461e-05', 'epoch': '0.48'}
+{'loss': '0.8171', 'grad_norm': '1.409', 'learning_rate': '8.745e-05', 'epoch': '0.5'}
+{'loss': '0.7254', 'grad_norm': '1.501', 'learning_rate': '8.036e-05', 'epoch': '0.52'}
+{'loss': '0.8039', 'grad_norm': '1.771', 'learning_rate': '7.337e-05', 'epoch': '0.54'}
+{'loss': '0.7383', 'grad_norm': '1.452', 'learning_rate': '6.651e-05', 'epoch': '0.56'}
+{'loss': '0.7623', 'grad_norm': '1.327', 'learning_rate': '5.983e-05', 'epoch': '0.58'}
+{'loss': '0.7223', 'grad_norm': '1.968', 'learning_rate': '5.336e-05', 'epoch': '0.6'}
+{'loss': '0.66', 'grad_norm': '1.429', 'learning_rate': '4.712e-05', 'epoch': '0.62'}
+{'loss': '0.6914', 'grad_norm': '1.651', 'learning_rate': '4.116e-05', 'epoch': '0.64'}
+{'loss': '0.6652', 'grad_norm': '1.937', 'learning_rate': '3.551e-05', 'epoch': '0.66'}
+{'loss': '0.6801', 'grad_norm': '2.177', 'learning_rate': '3.018e-05', 'epoch': '0.68'}
+{'loss': '0.6563', 'grad_norm': '1.736', 'learning_rate': '2.522e-05', 'epoch': '0.7'}
+{'loss': '0.6938', 'grad_norm': '1.534', 'learning_rate': '2.065e-05', 'epoch': '0.72'}
+{'loss': '0.6214', 'grad_norm': '1.71', 'learning_rate': '1.648e-05', 'epoch': '0.74'}
+{'loss': '0.6208', 'grad_norm': '1.616', 'learning_rate': '1.275e-05', 'epoch': '0.76'}
+{'loss': '0.7112', 'grad_norm': '1.695', 'learning_rate': '9.462e-06', 'epoch': '0.78'}
+{'loss': '0.6358', 'grad_norm': '1.748', 'learning_rate': '6.646e-06', 'epoch': '0.8'}
+{'loss': '0.6344', 'grad_norm': '1.97', 'learning_rate': '4.312e-06', 'epoch': '0.82'}
+{'loss': '0.6358', 'grad_norm': '1.82', 'learning_rate': '2.473e-06', 'epoch': '0.84'}
+{'loss': '0.6479', 'grad_norm': '1.89', 'learning_rate': '1.137e-06', 'epoch': '0.86'}
+{'loss': '0.622', 'grad_norm': '1.697', 'learning_rate': '3.125e-07', 'epoch': '0.88'}
+{'loss': '0.6419', 'grad_norm': '1.864', 'learning_rate': '2.584e-09', 'epoch': '0.9'}
+{'train_runtime': '1007', 'train_samples_per_second': '7.149', 'train_steps_per_second': '0.447', 'train_loss': '0.9349', 'epoch': '0.9'}
+100% 450/450 [16:47<00:00,  2.24s/it]
+[done] LoRA fine-tuning complete.
+[done] Adapter + tokenizer saved at: outputs/qwen_agri_lora
