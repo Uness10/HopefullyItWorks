@@ -91,6 +91,34 @@ Farmers, students, and agronomy practitioners need quick crop-health guidance wi
 \end{itemize}
 \end{frame}
 
+\begin{frame}{Inspiration and Our Adaptation}
+\begin{columns}[T]
+    \column{0.48\textwidth}
+    \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{assets/llava15_architecture.png}
+
+    \column{0.48\textwidth}
+    \small
+    \begin{block}{Inspired by LLaVA-1.5}
+    \begin{itemize}
+        \item CLIP vision encoder
+        \item simple MLP vision-language connector
+        \item efficient visual instruction tuning recipe
+    \end{itemize}
+    \end{block}
+
+    \begin{block}{Adapted to our setting}
+    \begin{itemize}
+        \item domain goal: agriculture, not general vision chat
+        \item domain data: KisanVaani + PlantVillage
+        \item compute constraints: Qwen2.5-0.5B, LoRA, Colab T4
+        \item design choice: keep all 256 spatial patches for leaf-level detail
+    \end{itemize}
+    \end{block}
+\end{columns}
+\vspace{0.2em}
+\tiny Inspired by \textit{Improved Baselines with Visual Instruction Tuning}; figure extracted from \texttt{papers/2310.03744v2.pdf}.
+\end{frame}
+
 \begin{frame}{Platform Vision}
 \begin{columns}[T]
     \column{0.48\textwidth}
@@ -175,52 +203,118 @@ The pipeline first teaches the model agricultural language, then teaches image t
 \end{block}
 \end{frame}
 
-\begin{frame}{Datasets Used}
-\begin{columns}[T]
-    \column{0.52\textwidth}
-    \begin{block}{Text Training Data}
-    \begin{itemize}
-        \item Source: \texttt{KisanVaani/agriculture-qa-english..}
-        \item Processed rows mentioned in logs: \textbf{22,574 usable}
-        \item Training subset written to JSONL: \textbf{8,000 rows}
-        \item Stage 0 setup: \textbf{450 max steps}, effective batch size 16
-    \end{itemize}
-    \end{block}
-
-    \column{0.44\textwidth}
-    \begin{block}{Vision-Language Data}
-    \begin{itemize}
-        \item Source for disease images: \textbf{PlantVillage}
-        \item Stage 1: \textbf{1,000} generated image-caption pairs
-        \item Stage 2: \textbf{1,000} generated VQA triplets
-        \item \textbf{4} QA pairs used per image from 5 templates
-        \item Notebook examples use PlantVillage apple disease images
-    \end{itemize}
-    \end{block}
-\end{columns}
-\vspace{0em}
-
+\begin{frame}{Stage 0: Prepare the Agriculture-Aware LLM}
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Details} \\
+\midrule
+Train  & LoRA on base LLM \\
+Data   & Agriculture text corpus \\
+Loss   & Causal LM (next token prediction) \\
+Result & LLM that knows plant diseases, agronomic terminology \\
+\bottomrule
+\end{tabular}
+\vspace{0.4em}
+\begin{itemize}
+    \item Source in code: \texttt{KisanVaani/agriculture-qa-english-only}
+    \item Processed rows in logs: \textbf{22,574 usable}; training JSONL subset: \textbf{8,000}
+    \item Stage 0 setup: \textbf{450 max steps}, effective batch size \textbf{16}
+\end{itemize}
 \end{frame}
 
+\begin{frame}{Stage 0 Plot: LLM Fine-Tuning}
+\begin{columns}[T]
+    \column{0.62\textwidth}
+    \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{plots/LLM fine-tuning loss curve.png}
 
-
-\begin{frame}{Generated Supervision Strategy}
-\begin{itemize}
-    \item \textbf{Stage 1 captions} are automatically produced from class labels such as \texttt{Tomato\_\_\_Early\_blight}.
-    \item \textbf{Stage 2 VQA} creates reviewable question-answer pairs like:
+    \column{0.34\textwidth}
+    \small
+    \begin{block}{What changed}
     \begin{itemize}
-        \item disease identification,
-        \item severity estimation,
-        \item visual evidence,
-        \item management advice,
-        \item prevention.
+        \item LoRA trained on \textbf{8,000} agricultural QA samples
+        \item Sharp early drop, then steady convergence
+        \item Final logged train loss: \textbf{0.9349}
     \end{itemize}
-    \item This makes training feasible even when manual multimodal annotations are limited.
-\end{itemize}
+    \end{block}
+%%    \begin{block}{Reading}
+ %%   The HTML report notes the curve falls fast in the first 100 steps, then continues decreasing through the 450-step run.
+ %%   \end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Stage 1: Train the Visual Projector}
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Details} \\
+\midrule
+Freeze  & ViT + LLM \\
+Train   & MLP projector only \\
+Data    & (image, caption) pairs from disease dataset \\
+Loss    & Causal LM on captions given image tokens \\
+Result  & Projector that speaks the LLM's embedding language \\
+Purpose & Alignment stage --- teach image tokens to look like text tokens \\
+\bottomrule
+\end{tabular}
+\end{frame}
+\begin{frame}{Stage 1 Plot: Caption Alignment}
+\begin{columns}[T]
+    \column{0.62\textwidth}
+    \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{plots/Projector loss curves (caption alignment).png}
+
+    \column{0.34\textwidth}
+    \small
+    \begin{block}{Stage 1}
+    \begin{itemize}
+        \item Frozen: ViT + LLM
+        \item Trained: projector only
+        \item Data: \textbf{1,000} caption pairs from PlantVillage
+        \item Captions auto-generated from disease class labels
+        \item Final loss: \textbf{0.0090}
+    \end{itemize}
+    \end{block}
+    \begin{block}{Interpretation}
+    This is the cleanest convergence phase in the pipeline and shows that the projector successfully learns the vision-to-language bridge.
+    \end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Stage 2: Fine-tune End-to-End with LoRA}
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Details} \\
+\midrule
+Freeze & ViT \\
+Train  & MLP projector + new LoRA layers in LLM \\
+Data   & (image, question, answer) triplets --- disease VQA \\
+Loss   & Causal LM on answers \\
+Result & Full multimodal agriculture assistant \\
+\bottomrule
+\end{tabular}
 \vspace{0.4em}
-%\begin{block}{Practical note}
-%%The repo explicitly notes that the generated VQA answers are template-based and should be manually reviewed before production use.
-%%\end{block}
+\begin{itemize}
+    \item Stage 2 set in logs: \textbf{1,000} generated VQA triplets from PlantVillage
+    \item \textbf{4} QA pairs sampled per image from 5 templates
+\end{itemize}
+\end{frame}
+\begin{frame}{Stage 2 Plot: VQA Alignment}
+\begin{columns}[T]
+    \column{0.62\textwidth}
+    \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{plots/Projectorlosscurves_(VQA alignment).png}
+
+    \column{0.34\textwidth}
+    \small
+    \begin{block}{Stage 2}
+    \begin{itemize}
+        \item Frozen: ViT + LLM backbone
+        \item Trained: projector + visual LoRA
+        \item Data: \textbf{1,000} PlantVillage VQA triplets
+        \item Final loss: \textbf{0.0141}
+    \end{itemize}
+    \end{block}
+    \begin{block}{Interpretation}
+    The first epoch is noisier because VQA is harder than captioning, but the run still converges cleanly by epoch 3.
+    \end{block}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Training Snapshot}
@@ -245,68 +339,6 @@ Stage 2 multimodal & epoch 3 & avg loss & 0.0141 \\
     \item HTML report summary: \textbf{8.8M trainable parameters}, about \textbf{1.75\%} of a 502M-parameter model.
     \item Stage 0 runtime reported: \textbf{1007 seconds} with about \textbf{7.15 samples/s}.
 \end{itemize}
-\end{frame}
-
-\begin{frame}{Stage 0 Plot: LLM Fine-Tuning}
-\begin{columns}[T]
-    \column{0.62\textwidth}
-    \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{plots/LLM fine-tuning loss curve.png}
-
-    \column{0.34\textwidth}
-    \small
-    \begin{block}{What changed}
-    \begin{itemize}
-        \item LoRA trained on \textbf{8,000} agricultural QA samples
-        \item Sharp early drop, then steady convergence
-        \item Final logged train loss: \textbf{0.9349}
-    \end{itemize}
-    \end{block}
-%%    \begin{block}{Reading}
- %%   The HTML report notes the curve falls fast in the first 100 steps, then continues decreasing through the 450-step run.
- %%   \end{block}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Stage 1 Plot: Caption Alignment}
-\begin{columns}[T]
-    \column{0.62\textwidth}
-    \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{plots/Projector loss curves (caption alignment).png}
-
-    \column{0.34\textwidth}
-    \small
-    \begin{block}{Stage 1}
-    \begin{itemize}
-        \item Frozen: ViT + LLM
-        \item Trained: projector only
-        \item Data: \textbf{1,000} caption pairs from PlantVillage
-        \item Final loss: \textbf{0.0090}
-    \end{itemize}
-    \end{block}
-    \begin{block}{Interpretation}
-    This is the cleanest convergence phase in the pipeline and shows that the projector successfully learns the vision-to-language bridge.
-    \end{block}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Stage 2 Plot: VQA Alignment}
-\begin{columns}[T]
-    \column{0.62\textwidth}
-    \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{plots/Projectorlosscurves_(VQA alignment).png}
-
-    \column{0.34\textwidth}
-    \small
-    \begin{block}{Stage 2}
-    \begin{itemize}
-        \item Frozen: ViT + LLM backbone
-        \item Trained: projector + visual LoRA
-        \item Data: \textbf{1,000} PlantVillage VQA triplets
-        \item Final loss: \textbf{0.0141}
-    \end{itemize}
-    \end{block}
-    \begin{block}{Interpretation}
-    The first epoch is noisier because VQA is harder than captioning, but the run still converges cleanly by epoch 3.
-    \end{block}
-\end{columns}
 \end{frame}
 
 \begin{frame}{Example Inference Story}
