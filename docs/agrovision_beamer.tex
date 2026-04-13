@@ -44,8 +44,8 @@
 
 \title{AgroVision}
 \subtitle{A Multimodal Agricultural Assistant for Text, Image, and Audio Queries}
-\author{Project Prototype Presentation}
-\date{15-minute Beamer Prototype}
+\author{Mohamed Aymane Bourich-Mouad El Ansari-Youness Anouar}
+\date{April 2026}
 
 \begin{document}
 
@@ -60,9 +60,7 @@
 \begin{frame}[plain]
     \titlepage
     \vspace{-0.6em}
-    {\color{AgroCream}\small
-    Platform assumption for this prototype:
-    users can submit \textbf{image + text}, \textbf{text only}, or \textbf{audio only} queries.}
+    
 \end{frame}
 }
 
@@ -118,25 +116,20 @@ Farmers, students, and agronomy practitioners need quick crop-health guidance wi
 \vspace{0.2em}
 \small The repository implements the language and vision-language core; this presentation adds audio as a product-level input channel.
 \end{frame}
-
 \begin{frame}{What the Repository Actually Implements}
 \begin{itemize}
     \item \textbf{Base language model}: \texttt{Qwen/Qwen2.5-0.5B-Instruct}
     \item \textbf{Vision encoder}: \texttt{openai/clip-vit-large-patch14}
     \item \textbf{Alignment module}: a two-layer \textbf{MLP projector}
     \item \textbf{Adaptation}: agriculture LoRA + visual LoRA
-    \item \textbf{Run context from the HTML report}: Google Colab T4 GPU
+    \item \textbf{Training environment}: Google Colab T4 GPU
     \item \textbf{Inference paths}:
     \begin{itemize}
         \item \texttt{generate\_text\_only(...)}
-        \item image-conditioned generation using all visual patches
+        \item Image-conditioned generation using all visual patches
     \end{itemize}
-    \item \textbf{Frontend/backend references in README}: Streamlit frontend and FastAPI inference server
+    \item \textbf{Deployment}: Streamlit frontend + FastAPI inference server
 \end{itemize}
-\vspace{0.3em}
-\begin{alertblock}{Important correction}
-The disease image data used for multimodal training is \textbf{PlantVillage}, not the local \texttt{/dataset} folder.
-\end{alertblock}
 \end{frame}
 
 \begin{frame}{End-to-End System Architecture}
@@ -187,7 +180,7 @@ The pipeline first teaches the model agricultural language, then teaches image t
     \column{0.52\textwidth}
     \begin{block}{Text Training Data}
     \begin{itemize}
-        \item Source: \texttt{KisanVaani/agriculture-qa-english-only}
+        \item Source: \texttt{KisanVaani/agriculture-qa-english..}
         \item Processed rows mentioned in logs: \textbf{22,574 usable}
         \item Training subset written to JSONL: \textbf{8,000 rows}
         \item Stage 0 setup: \textbf{450 max steps}, effective batch size 16
@@ -205,12 +198,11 @@ The pipeline first teaches the model agricultural language, then teaches image t
     \end{itemize}
     \end{block}
 \end{columns}
-\vspace{0.4em}
-\begin{alertblock}{Dataset clarification}
-For the presentation, the correct multimodal dataset statement is:
-\textbf{``We use PlantVillage for visual disease learning, not the local /dataset directory.''}
-\end{alertblock}
+\vspace{0em}
+
 \end{frame}
+
+
 
 \begin{frame}{Generated Supervision Strategy}
 \begin{itemize}
@@ -226,9 +218,9 @@ For the presentation, the correct multimodal dataset statement is:
     \item This makes training feasible even when manual multimodal annotations are limited.
 \end{itemize}
 \vspace{0.4em}
-\begin{block}{Practical note}
-The repo explicitly notes that the generated VQA answers are template-based and should be manually reviewed before production use.
-\end{block}
+%\begin{block}{Practical note}
+%%The repo explicitly notes that the generated VQA answers are template-based and should be manually reviewed before production use.
+%%\end{block}
 \end{frame}
 
 \begin{frame}{Training Snapshot}
@@ -269,9 +261,9 @@ Stage 2 multimodal & epoch 3 & avg loss & 0.0141 \\
         \item Final logged train loss: \textbf{0.9349}
     \end{itemize}
     \end{block}
-    \begin{block}{Reading}
-    The HTML report notes the curve falls fast in the first 100 steps, then continues decreasing through the 450-step run.
-    \end{block}
+%%    \begin{block}{Reading}
+ %%   The HTML report notes the curve falls fast in the first 100 steps, then continues decreasing through the 450-step run.
+ %%   \end{block}
 \end{columns}
 \end{frame}
 
@@ -330,8 +322,8 @@ Prompt: ``What disease is visible and how severe is it?''
 \end{block}
 \vspace{0.4em}
 \begin{itemize}
-    \item The reported output identifies visible spots and lesions and provides disease-aware reasoning.
-    \item The new HTML report also highlights an important limitation: the model recognizes disease symptoms but still hallucinates some pathogen details.
+    \item The  output identifies visible spots and lesions and provides disease-aware reasoning.
+    \item It also highlights an important limitation: the model recognizes disease symptoms but still hallucinates some pathogen details.
     \item This demonstrates the shift from pure agronomy QA to image-grounded crop diagnosis, while still leaving room for factual calibration.
 \end{itemize}
 \end{frame}
@@ -357,9 +349,9 @@ Prompt: ``What disease is visible and how severe is it?''
     \end{block}
 \end{columns}
 \vspace{0.4em}
-\begin{alertblock}{Message for the audience}
-Audio support expands accessibility without changing the core reasoning backbone: it is a new input interface, not a separate model family.
-\end{alertblock}
+%%\begin{alertblock}{Message for the audience}
+%%Audio support expands accessibility without changing the core reasoning backbone: it is a new input interface, not a separate model family.
+%%\end{alertblock}
 \end{frame}
 
 \begin{frame}{Why This Design Is Practical}
@@ -376,9 +368,9 @@ Audio support expands accessibility without changing the core reasoning backbone
 \begin{itemize}
     \item Multimodal supervision is partly template-generated, so linguistic diversity is limited.
     \item PlantVillage is curated and clean; field images in real farms may be harder.
-    \item The HTML report notes Stage 0 stops at about \textbf{0.9 epochs}, so the language adapter has not yet fully covered the full text dataset.
-    \item The repository shows some documentation drift between README and code, so the implementation snapshot should be based on the latest report and scripts.
-    \item Audio is presented here as a working platform feature layered on top of the repository core, not as a separately trained speech model in this repo.
+    \item Stage 0 stops when the loss is at about \textbf{0.9}, so the language adapter has not yet fully covered the full text dataset.
+    
+
 \end{itemize}
 \end{frame}
 

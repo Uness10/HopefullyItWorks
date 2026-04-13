@@ -41,7 +41,7 @@ from peft import LoraConfig, get_peft_model, PeftModel
 from PIL import Image
 from tqdm import tqdm
 
-from model import PatchProjector
+from model.model import PatchProjector
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

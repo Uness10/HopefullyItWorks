@@ -34,7 +34,7 @@ from transformers import (
 )
 from peft import PeftModel
 
-from model import PatchProjector
+from model.model import PatchProjector
 
 
 # ─────────────────────────────────────────────
