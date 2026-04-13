@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agri MLLM - Agriculture AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-50:  #e8f5ee;
+    --green-100: #c3e6d0;
+    --green-200: #8fcfaa;
+    --green-400: #3da86b;
+    --green-500: #1e8a4a;
+    --green-600: #0f6b35;
+    --green-700: #074d24;
+    --green-900: #021a0b;
+
+    --earth-50:  #f5f0e8;
+    --earth-100: #e8ddc8;
+    --earth-200: #c9b898;
+    --earth-400: #9e8055;
+    --earth-600: #6b5230;
+    --earth-800: #3a2c16;
+
+    --sky-50:    #e8f2fa;
+    --sky-200:   #90c4e8;
+    --sky-500:   #2a88cc;
+
+    --bg:        #0e1412;
+    --bg-card:   #141c18;
+    --bg-ele:    #1a2520;
+    --bg-hover:  #1f2e28;
+    --border:    rgba(255,255,255,0.07);
+    --border-md: rgba(255,255,255,0.12);
+    --text-pri:  #e8f0eb;
+    --text-sec:  #8fa898;
+    --text-ter:  #4d6358;
+
+    --accent:    #3da86b;
+    --accent-dk: #0f6b35;
+    --accent-lt: #8fcfaa;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-head: 'Playfair Display', serif;
+
+    --sidebar-w: 240px;
+    --topbar-h:  58px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: var(--font-body);
+    color: var(--text-pri);
+    overflow: hidden;
+    font-size: 14px;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 4px; }
+
+  .shell {
+    display: flex;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shell::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(61,168,107,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .shell::after {
+    content: '';
+    position: fixed;
+    bottom: -150px; right: 50px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(42,136,204,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .sidebar-brand {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .brand-logo {
+    width: 34px; height: 34px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--green-500), var(--green-700));
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(61,168,107,0.3), 0 4px 14px rgba(15,107,53,0.4);
+  }
+
+  .brand-logo svg { width: 18px; height: 18px; }
+
+  .brand-text { line-height: 1.2; }
+
+  .brand-name {
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-pri);
+    letter-spacing: -0.01em;
+  }
+
+  .brand-tagline {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-ter);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .new-chat {
+    margin: 14px 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 13px;
+    border: 1px dashed rgba(61,168,107,0.35);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    width: calc(100% - 28px);
+  }
+
+  .new-chat:hover {
+    background: rgba(61,168,107,0.08);
+    border-color: rgba(61,168,107,0.55);
+    box-shadow: 0 0 12px rgba(61,168,107,0.1);
+  }
+
+  .new-chat svg { width: 13px; height: 13px; }
+
+  .sidebar-section { padding: 18px 14px 6px; }
+
+  .sidebar-sec-label {
+    font-size: 9.5px;
+    font-weight: 500;
+    color: var(--text-ter);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow-y: auto;
+    max-height: 260px;
+  }
+
+  .hist-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--text-sec);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid transparent;
+  }
+
+  .hist-item:hover { background: var(--bg-hover); color: var(--text-pri); }
+
+  .hist-item.active {
+    background: rgba(61,168,107,0.1);
+    color: var(--accent-lt);
+    border-color: rgba(61,168,107,0.2);
+  }
+
+  .hist-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-ter);
+  }
+
+  .hist-item.active .hist-dot { background: var(--accent); }
+
+  .hist-label { overflow: hidden; text-overflow: ellipsis; }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 14px;
+  }
+
+  .sidebar-stats {
+    padding: 0 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    background: var(--bg-ele);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+  }
+
+  .stat-val {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-lt);
+    font-family: var(--font-head);
+    line-height: 1;
+  }
+
+  .stat-label { font-size: 10px; color: var(--text-ter); margin-top: 3px; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-label {
+    font-size: 9.5px;
+    font-weight: 500;
+    color: var(--text-ter);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .api-code {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--green-200);
+    background: var(--bg-ele);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .footer-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-ter);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-width: 0;
+    position: relative;
+    z-index: 5;
+  }
+
+  .topbar {
+    height: var(--topbar-h);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 22px;
+    background: rgba(14,20,18,0.7);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+  .topbar-title {
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--text-pri);
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .session-badge {
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 99px;
+    background: rgba(61,168,107,0.12);
+    color: var(--accent-lt);
+    border: 1px solid rgba(61,168,107,0.25);
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+  .modality-pill {
+    font-size: 10.5px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border-md);
+    color: var(--text-ter);
+    background: transparent;
+    cursor: default;
+    transition: all 0.15s;
+  }
+
+  .modality-pill.on {
+    background: rgba(61,168,107,0.12);
+    color: var(--accent-lt);
+    border-color: rgba(61,168,107,0.3);
+  }
+
+  .topbar-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-sec);
+    transition: all 0.15s;
+  }
+
+  .topbar-btn:hover { background: var(--bg-hover); color: var(--text-pri); }
+
+  .topbar-btn svg { width: 13px; height: 13px; }
+
+  .chat-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 24px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+    animation: fadeUp 0.5s ease;
+  }
+
+  .welcome-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--green-500), var(--green-700));
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 1px rgba(61,168,107,0.3), 0 8px 32px rgba(15,107,53,0.4);
+    margin-bottom: 4px;
+  }
+
+  .welcome-icon svg { width: 32px; height: 32px; }
+
+  .welcome h1 {
+    font-family: var(--font-head);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-pri);
+    line-height: 1.2;
+  }
+
+  .welcome p {
+    font-size: 14px;
+    color: var(--text-sec);
+    max-width: 380px;
+    line-height: 1.65;
+  }
+
+  .welcome-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .chip {
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border: 1px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .chip:hover {
+    border-color: rgba(61,168,107,0.4);
+    color: var(--accent-lt);
+    background: rgba(61,168,107,0.07);
+  }
+
+  .msg-group {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    animation: fadeUp 0.35s ease;
+  }
+
+  .msg-group.user { flex-direction: row-reverse; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .avatar.bot {
+    background: linear-gradient(135deg, var(--green-500), var(--green-700));
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(61,168,107,0.3);
+  }
+
+  .avatar.user {
+    background: var(--bg-ele);
+    color: var(--text-sec);
+    border: 1px solid var(--border-md);
+  }
+
+  .msg-content { display: flex; flex-direction: column; gap: 5px; max-width: 72%; }
+
+  .bubble {
+    padding: 11px 15px;
+    border-radius: var(--radius-lg);
+    font-size: 13.5px;
+    line-height: 1.65;
+    position: relative;
+  }
+
+  .bubble.bot {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+    color: var(--text-pri);
+  }
+
+  .bubble.user {
+    background: linear-gradient(135deg, var(--green-500), var(--green-600));
+    border-top-right-radius: 4px;
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(15,107,53,0.35);
+  }
+
+  .bubble-img {
+    width: 100%;
+    max-width: 260px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .bubble-img img { width: 100%; height: auto; display: block; }
+
+  .transcript-box {
+    background: var(--bg-ele);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--sky-500);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-top: 8px;
+  }
+
+  .transcript-label {
+    font-size: 10px;
+    color: var(--sky-200);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .transcript-text {
+    font-size: 12px;
+    color: var(--text-sec);
+    font-style: italic;
+  }
+
+  .msg-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .msg-time { font-size: 10.5px; color: var(--text-ter); }
+
+  .mod-badge {
+    font-size: 9.5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .mod-badge.text  { background: rgba(61,168,107,0.12); color: var(--accent-lt); }
+  .mod-badge.image { background: rgba(158,128,85,0.15); color: var(--earth-200); }
+  .mod-badge.pdf   { background: rgba(204,80,60,0.12); color: #f09888; }
+  .mod-badge.audio { background: rgba(42,136,204,0.12); color: var(--sky-200); }
+
+  .msg-group.user .msg-meta { justify-content: flex-end; }
+
+  .typing-bubble {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+    border-radius: var(--radius-lg);
+    width: fit-content;
+  }
+
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: tdot 1.3s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.18s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+  @keyframes tdot {
+    0%,60%,100% { opacity: 0.2; transform: scale(0.85); }
+    30% { opacity: 1; transform: scale(1); }
+  }
+
+  .info-box {
+    background: rgba(61,168,107,0.08);
+    border: 1px solid rgba(61,168,107,0.2);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-sec);
+    line-height: 1.6;
+  }
+
+  .info-box strong { color: var(--accent-lt); font-weight: 500; }
+
+  .attach-bar {
+    padding: 10px 22px 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .attach-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 13px;
+    border: 1px dashed var(--border-md);
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: all 0.17s;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .attach-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  .attach-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-pri);
+    border-color: var(--border-md);
+    border-style: solid;
+  }
+
+  .attach-btn.filled {
+    border-style: solid;
+    border-color: rgba(61,168,107,0.4);
+    background: rgba(61,168,107,0.08);
+    color: var(--accent-lt);
+  }
+
+  .attach-btn.filled-pdf {
+    border-style: solid;
+    border-color: rgba(204,80,60,0.3);
+    background: rgba(204,80,60,0.08);
+    color: #f09888;
+  }
+
+  .attach-btn.filled-audio {
+    border-style: solid;
+    border-color: rgba(42,136,204,0.3);
+    background: rgba(42,136,204,0.08);
+    color: var(--sky-200);
+  }
+
+  input[type="file"] { display: none; }
+
+  .input-row {
+    padding: 10px 22px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .input-box {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-md);
+    border-radius: var(--radius-xl);
+    padding: 11px 16px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .input-box:focus-within {
+    border-color: rgba(61,168,107,0.5);
+    box-shadow: 0 0 0 3px rgba(61,168,107,0.07);
+  }
+
+  .chat-textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--text-pri);
+    resize: none;
+    line-height: 1.55;
+    min-height: 22px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .chat-textarea::placeholder { color: var(--text-ter); }
+
+  .send-btn {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--green-400), var(--green-600));
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.17s;
+    box-shadow: 0 3px 12px rgba(15,107,53,0.45);
+  }
+
+  .send-btn:hover {
+    transform: scale(1.06);
+    box-shadow: 0 5px 18px rgba(15,107,53,0.55);
+  }
+
+  .send-btn:active { transform: scale(0.97); }
+  .send-btn svg { width: 14px; height: 14px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-md);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 11px 16px;
+    font-size: 12.5px;
+    color: var(--text-sec);
+    z-index: 1000;
+    max-width: 280px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s ease;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 680px) {
+    .sidebar { display: none; }
+    .msg-content { max-width: 85%; }
+    .topbar-right .modality-pill { display: none; }
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+  }
+
+  em { font-style: italic; color: var(--earth-200); }
+  strong { font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h2 class="sr-only">Agri MLLM - Agriculture AI Chatbot Interface</h2>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22V12"/>
+          <path d="M12 12C12 7 15 4 19 3"/>
+          <path d="M12 12C12 7 9 4 5 3"/>
+          <path d="M5 3C6 8 9 11 12 12"/>
+          <path d="M19 3C18 8 15 11 12 12"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">Agri MLLM</div>
+        <div class="brand-tagline">Agriculture AI</div>
+      </div>
+    </div>
+
+    <button class="new-chat" onclick="clearChat()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New conversation
+    </button>
+
+    <div class="sidebar-section">
+      <div class="sidebar-sec-label">Recent</div>
+      <div class="history-list">
+        <div class="hist-item active" onclick="loadConv(this,'Wheat rust identification')">
+          <div class="hist-dot"></div><span class="hist-label">Wheat rust identification</span>
+        </div>
+        <div class="hist-item" onclick="loadConv(this,'Soil pH analysis for tomatoes')">
+          <div class="hist-dot"></div><span class="hist-label">Soil pH analysis for tomatoes</span>
+        </div>
+        <div class="hist-item" onclick="loadConv(this,'Drip irrigation scheduling')">
+          <div class="hist-dot"></div><span class="hist-label">Drip irrigation scheduling</span>
+        </div>
+        <div class="hist-item" onclick="loadConv(this,'Corn nitrogen fertilizer dosage')">
+          <div class="hist-dot"></div><span class="hist-label">Corn nitrogen fertilizer dosage</span>
+        </div>
+        <div class="hist-item" onclick="loadConv(this,'Pest control olive trees')">
+          <div class="hist-dot"></div><span class="hist-label">Pest control olive trees</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-stats">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-queries">0</div>
+        <div class="stat-label">Total queries</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-sessions">1</div>
+        <div class="stat-label">Sessions</div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="footer-label">API endpoint</div>
+      <span class="api-code" id="api-url">http://127.0.0.1:8000/chat</span>
+      <div class="footer-status">
+        <div class="status-dot"></div>
+        <span id="backend-status">Checking backend...</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title" id="conv-title">Wheat rust identification</span>
+        <span class="session-badge">Active</span>
+      </div>
+      <div class="topbar-right">
+        <span class="modality-pill on" id="pill-text">Text</span>
+        <span class="modality-pill" id="pill-image">Image</span>
+        <span class="modality-pill" id="pill-pdf">PDF</span>
+        <span class="modality-pill" id="pill-audio">Audio</span>
+        <button class="topbar-btn" title="Clear conversation" onclick="clearChat()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-wrap" id="chat-wrap">
+      <div class="welcome" id="welcome-screen">
+        <div class="welcome-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <path d="M12 22V12"/>
+            <path d="M12 12C12 7 15 4 19 3"/>
+            <path d="M12 12C12 7 9 4 5 3"/>
+          </svg>
+        </div>
+        <h1>What can I help you grow?</h1>
+        <p>Ask about crops, diseases, soil, irrigation, pests, or upload an image, PDF or audio for multimodal analysis.</p>
+        <div class="welcome-chips">
+          <div class="chip" onclick="useChip(this)">Identify a leaf disease</div>
+          <div class="chip" onclick="useChip(this)">Best fertilizer for wheat</div>
+          <div class="chip" onclick="useChip(this)">Irrigation schedule for 5 ha</div>
+          <div class="chip" onclick="useChip(this)">How to treat root rot?</div>
+          <div class="chip" onclick="useChip(this)">Soil pH for tomatoes</div>
+          <div class="chip" onclick="useChip(this)">Pest control olive trees</div>
+        </div>
+      </div>
+      <div id="msg-list" style="display:flex;flex-direction:column;gap:20px;"></div>
+    </div>
+
+    <div class="attach-bar">
+      <input type="file" id="file-image" accept=".png,.jpg,.jpeg,.webp" onchange="handleFile('image',this)"/>
+      <input type="file" id="file-pdf" accept=".pdf" onchange="handleFile('pdf',this)"/>
+      <input type="file" id="file-audio" accept=".wav,.mp3,.flac,.m4a,.ogg" onchange="handleFile('audio',this)"/>
+
+      <button class="attach-btn" id="btn-image" onclick="document.getElementById('file-image').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span id="lbl-image">Attach image</span>
+      </button>
+
+      <button class="attach-btn" id="btn-pdf" onclick="document.getElementById('file-pdf').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+        <span id="lbl-pdf">Attach PDF</span>
+      </button>
+
+      <button class="attach-btn" id="btn-audio" onclick="document.getElementById('file-audio').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span id="lbl-audio">Attach audio</span>
+      </button>
+    </div>
+
+    <div class="input-row">
+      <div class="input-box">
+        <textarea
+          class="chat-textarea"
+          id="chat-input"
+          placeholder="Ask an agriculture question..."
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+      </div>
+      <button class="send-btn" onclick="sendMessage()" title="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API_URL = `${window.location.origin}/chat`;
+  let history = [];
+  let sessionCount = 1;
+  let attachments = { image: null, pdf: null, audio: null };
+
+  document.getElementById('api-url').textContent = API_URL;
+
+  async function checkBackend() {
+    try {
+      const res = await fetch(`${window.location.origin}/health`, { method: 'GET' });
+      document.getElementById('backend-status').textContent = res.ok ? 'Backend connected' : 'Backend unavailable';
+    } catch (_e) {
+      document.getElementById('backend-status').textContent = 'Backend unavailable';
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleFile(type, input) {
+    const file = input.files[0];
+    if (!file) return;
+    attachments[type] = file;
+
+    const btn = document.getElementById('btn-' + type);
+    const lbl = document.getElementById('lbl-' + type);
+    const cls = type === 'pdf' ? 'filled-pdf' : type === 'audio' ? 'filled-audio' : 'filled';
+
+    btn.className = 'attach-btn ' + cls;
+    lbl.textContent = file.name.length > 20 ? file.name.slice(0, 18) + '...' : file.name;
+
+    updatePills();
+    showToast(file.name + ' attached');
+  }
+
+  function clearAttachment(type) {
+    attachments[type] = null;
+    document.getElementById('file-' + type).value = '';
+    document.getElementById('btn-' + type).className = 'attach-btn';
+    const labels = { image: 'Attach image', pdf: 'Attach PDF', audio: 'Attach audio' };
+    document.getElementById('lbl-' + type).textContent = labels[type];
+    updatePills();
+  }
+
+  function updatePills() {
+    document.getElementById('pill-image').className = 'modality-pill' + (attachments.image ? ' on' : '');
+    document.getElementById('pill-pdf').className = 'modality-pill' + (attachments.pdf ? ' on' : '');
+    document.getElementById('pill-audio').className = 'modality-pill' + (attachments.audio ? ' on' : '');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  function useChip(el) {
+    const inp = document.getElementById('chat-input');
+    inp.value = el.textContent;
+    autoResize(inp);
+    inp.focus();
+  }
+
+  function loadConv(el, title) {
+    document.querySelectorAll('.hist-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('conv-title').textContent = title;
+    clearChat(false);
+    showToast('Conversation loaded');
+  }
+
+  function clearChat(resetTitle = true) {
+    history = [];
+    attachments = { image: null, pdf: null, audio: null };
+    ['image','pdf','audio'].forEach(t => {
+      document.getElementById('file-' + t).value = '';
+      document.getElementById('btn-' + t).className = 'attach-btn';
+    });
+    document.getElementById('lbl-image').textContent = 'Attach image';
+    document.getElementById('lbl-pdf').textContent = 'Attach PDF';
+    document.getElementById('lbl-audio').textContent = 'Attach audio';
+    updatePills();
+
+    document.getElementById('msg-list').innerHTML = '';
+    document.getElementById('welcome-screen').style.display = 'flex';
+    if (resetTitle) {
+      document.getElementById('conv-title').textContent = 'New conversation';
+      sessionCount += 1;
+      document.getElementById('stat-sessions').textContent = String(sessionCount);
+    }
+    document.getElementById('chat-input').value = '';
+    document.getElementById('chat-input').style.height = 'auto';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function scrollBottom() {
+    const wrap = document.getElementById('chat-wrap');
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function nowTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderMsg(role, text, meta = {}) {
+    const list = document.getElementById('msg-list');
+    const grp = document.createElement('div');
+    grp.className = 'msg-group ' + role;
+
+    const initials = role === 'user' ? 'You' : 'AI';
+    const avatarCls = role === 'user' ? 'user' : 'bot';
+
+    let bubbleInner = '';
+
+    if (role === 'user' && meta.imageURL) {
+      bubbleInner += `<div class="bubble-img"><img src="${meta.imageURL}" alt="attached image"/></div>`;
+    }
+
+    bubbleInner += text.replace(/\n/g, '<br>');
+
+    if (meta.transcript) {
+      bubbleInner += `<div class="transcript-box"><div class="transcript-label">Audio transcript</div><div class="transcript-text">${meta.transcript}</div></div>`;
+    }
+
+    if (meta.infoBox) {
+      bubbleInner += `<div class="info-box">${meta.infoBox}</div>`;
+    }
+
+    const modalities = meta.modalities || ['text'];
+    const badgesHTML = modalities.map(m => `<span class="mod-badge ${m}">${m}</span>`).join('');
+
+    grp.innerHTML = `
+      <div class="avatar ${avatarCls}">${initials}</div>
+      <div class="msg-content">
+        <div class="bubble ${role}">${bubbleInner}</div>
+        <div class="msg-meta">
+          <span class="msg-time">${nowTime()}</span>
+          ${role === 'bot' ? badgesHTML : ''}
+        </div>
+      </div>`;
+
+    list.appendChild(grp);
+    scrollBottom();
+    return grp;
+  }
+
+  function renderTyping() {
+    const list = document.getElementById('msg-list');
+    const grp = document.createElement('div');
+    grp.className = 'msg-group bot';
+    grp.id = 'typing-indicator';
+    grp.innerHTML = `
+      <div class="avatar bot">AI</div>
+      <div class="msg-content">
+        <div class="typing-bubble">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>`;
+    list.appendChild(grp);
+    scrollBottom();
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+  }
+
+  function getModalities() {
+    const m = ['text'];
+    if (attachments.image) m.push('image');
+    if (attachments.pdf) m.push('pdf');
+    if (attachments.audio) m.push('audio');
+    return m;
+  }
+
+  async function sendMessage() {
+    const inp = document.getElementById('chat-input');
+    const text = inp.value.trim();
+    if (!text) return;
+
+    document.getElementById('welcome-screen').style.display = 'none';
+
+    const imgFile = attachments.image;
+    const pdfFile = attachments.pdf;
+    const audioFile = attachments.audio;
+    const mods = getModalities();
+
+    let imageURL = null;
+    if (imgFile) imageURL = await readFileAsURL(imgFile);
+
+    renderMsg('user', text, { imageURL, modalities: mods });
+
+    inp.value = '';
+    inp.style.height = 'auto';
+
+    history.push({ role: 'user', content: text });
+    document.getElementById('stat-queries').textContent = String(history.filter(h => h.role === 'user').length);
+
+    ['image', 'pdf', 'audio'].forEach(clearAttachment);
+    renderTyping();
+
+    const fd = new FormData();
+    fd.append('message', text);
+    fd.append('history_json', JSON.stringify(history.slice(-10)));
+    if (imgFile) fd.append('image', imgFile, imgFile.name);
+    if (pdfFile) fd.append('pdf', pdfFile, pdfFile.name);
+    if (audioFile) fd.append('audio', audioFile, audioFile.name);
+
+    try {
+      const res = await fetch(API_URL, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+      const data = await res.json();
+
+      removeTyping();
+      const answer = data.answer || '';
+      const transcript = data.transcript || null;
+      const usedMods = data.used_modalities || mods;
+
+      renderMsg('bot', answer, { transcript, modalities: usedMods });
+      history.push({ role: 'assistant', content: answer });
+    } catch (err) {
+      removeTyping();
+      const errMsg = `Request failed: ${err.message}`;
+      renderMsg('bot', errMsg, { modalities: ['text'] });
+      history.push({ role: 'assistant', content: errMsg });
+      showToast('Connection error - check your API');
+    }
+  }
+
+  function readFileAsURL(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = e => resolve(e.target.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  checkBackend();
+</script>
+</body>
+</html>

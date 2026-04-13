@@ -1,243 +1,210 @@
-# AgroVision — Agricultural Multimodal Assistant
+# Multimodal Agriculture Assistant
 
-Image + text → grounded crop disease analysis, powered by a fine-tuned LLM with visual patch tokens.
+This project builds a multimodal agriculture assistant that can:
+- Answer text-only agronomy questions.
+- Analyze crop leaf images and provide disease-oriented guidance.
 
----
+The implementation follows a three-stage training pipeline using:
+- Base LLM: `Qwen/Qwen2.5-0.5B-Instruct`
+- Vision encoder: `openai/clip-vit-large-patch14`
+- Parameter-efficient tuning with LoRA and a learned visual projector
 
-## Architecture
+The pipeline and results are documented in `docs/report.md`.
 
+## Pipeline Summary
+
+1. Stage 0: Domain text adaptation (LoRA)
+     - Train LoRA on agriculture QA text.
+     - Output: `outputs/qwen_agri_lora`
+
+2. Stage 1: Vision-language alignment
+     - Freeze ViT + LLM, train only projector on image-caption pairs.
+     - Output: `checkpoints/projector_stage1.pt`
+
+3. Stage 2: Multimodal refinement
+     - Freeze ViT, train projector + visual LoRA on VQA triplets.
+     - Output: `checkpoints/projector_stage2_best.pt` and `checkpoints/visual_lora_best`
+
+## Report Highlights
+
+Based on `docs/report.md`:
+- Text LoRA training loss decreased from ~3.449 to ~0.642.
+- Stage 1 projector average loss dropped from 0.5500 to 0.0090 (3 epochs).
+- Stage 2 multimodal average loss dropped from 0.3996 to 0.0141 (3 epochs).
+- Final inference on PlantVillage apple leaf images produced disease-aware diagnostic reasoning.
+
+## Repository Structure
+
+- `model/`: training scripts, inference script, notebook workflow
+- `app/mllm_chatbot/`: FastAPI + UI app (optional serving layer)
+- `docs/`: report, logs, and presentation material
+- `requirements.txt`: main dependencies
+
+## Prerequisites
+
+- Python 3.10+ (recommended)
+- Git
+- CUDA-enabled GPU recommended for training
+- Optional: Hugging Face token for faster dataset/model downloads (`HF_TOKEN`)
+
+## Step-by-Step: Run the Project
+
+The recommended path is the notebook workflow in `model/main.ipynb`.
+Run all commands below from the repository root.
+
+### 1) Create and activate a virtual environment
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
-Crop image
-    │
-    ▼
-CLIP ViT-Large/14  (frozen)
-    │  256 patch tokens  (1024-dim each)
-    ▼
-MLP Projector       (trained)
-    │  256 projected tokens  (4096-dim)
-    ▼
-[visual tokens | text prompt tokens]
-    │
-    ▼
-Mistral-7B + Agriculture LoRA + Visual LoRA
-    │
-    ▼
-Answer
+
+macOS/Linux:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
 ```
 
-Key design choices:
-- **All 256 patch tokens** are passed to the LLM (not just the [CLS] token), so the model can spatially attend to disease spots, color patterns, and texture regions.
-- **Frozen ViT** — CLIP's web-scale pretraining already understands plant textures and colour anomalies. No need to re-train it on your small disease dataset.
-- **Two-stage training** — projector alignment first (cheap), then visual LoRA (targeted).
-
----
-
-## Project Structure
-
-```
-agri_assistant/
-├── model.py              ← AgriMultimodalModel (ViT + Projector + LLM)
-├── train_projector.py    ← Stage-1 and Stage-2 training scripts
-├── server.py             ← FastAPI inference server
-├── app.py                ← Streamlit frontend
-├── requirements.txt
-└── README.md
-```
-
----
-
-## Setup
+### 2) Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Assumes you already have:
-- A fine-tuned agriculture LoRA saved at `./checkpoints/agri_lora/`
-- (Optional) A trained projector at `./checkpoints/projector_stage2_best.pt`
+### 3) Prepare folders
 
----
-
-## Training the Visual Projector
-
-### Prepare your data
-
-### Auto-generate starter datasets
-
-If your dataset is class-organized (for example `Tomato___Early_blight/*.jpg`), you can generate both JSONL files directly.
-
-```bash
-# Stage 1 captions
-python build_stage1_captions.py \
-    --images_dir ./data/plantvillage \
-    --output_jsonl ./data/captions/captions.jsonl \
-    --shuffle \
-    --max_images 20000
-
-# Stage 2 VQA triplets
-python build_stage2_vqa.py \
-    --images_dir ./data/plantvillage \
-    --output_jsonl ./data/vqa/vqa.jsonl \
-    --pairs_per_image 4 \
-    --shuffle \
-    --max_images 8000
-```
-
-PowerShell equivalent:
+Windows (PowerShell):
 
 ```powershell
-python .\build_stage1_captions.py --images_dir .\data\plantvillage --output_jsonl .\data\captions\captions.jsonl --shuffle --max_images 20000
-python .\build_stage2_vqa.py --images_dir .\data\plantvillage --output_jsonl .\data\vqa\vqa.jsonl --pairs_per_image 4 --shuffle --max_images 8000
+New-Item -ItemType Directory -Force -Path data/captions, data/vqa, checkpoints, outputs | Out-Null
 ```
 
-Notes:
-- The generated Stage 2 answers are template-based; review a sample before training.
-- Use `--class_source stem` if labels are encoded in filenames instead of folders.
-
-**Stage 1** — `data/captions/captions.jsonl` (one JSON per line):
-```json
-{"image": "data/images/tomato_001.jpg", "caption": "Tomato leaf showing circular brown lesions with yellow halos, consistent with early blight caused by Alternaria solani."}
-{"image": "data/images/wheat_002.jpg", "caption": "Wheat stem with orange pustules arranged in rows, indicating stem rust (Puccinia graminis)."}
-```
-
-**Stage 2** — `data/vqa/vqa.jsonl` (one JSON per line):
-```json
-{"image": "data/images/tomato_001.jpg", "question": "What disease is visible and how severe is it?", "answer": "The leaf shows early blight (Alternaria solani). The infection is moderate — roughly 30% of the leaf surface is affected. Brown target-spot lesions with yellow chlorotic halos are present on lower leaves, which is typical of early-stage infection."}
-```
-
-### Run training
+macOS/Linux:
 
 ```bash
-# Bash (Linux/macOS)
-# Stage 1 — align projector to LLM embedding space
-python train_projector.py \
+mkdir -p data/captions data/vqa checkpoints outputs
+```
+
+### 4) Get PlantVillage dataset
+
+```bash
+git clone --depth 1 https://github.com/spMohanty/PlantVillage-Dataset.git data/PlantVillage-Dataset
+```
+
+Expected image root for next steps:
+- `data/PlantVillage-Dataset/raw/color`
+
+### 5) Run Stage 0 (text LoRA)
+
+```bash
+python -m model.fine_tune \
+    --output-dir outputs/qwen_agri_lora \
+    --dataset-output-jsonl data/processed/agri_train.jsonl
+```
+
+### 6) Build Stage 1 caption dataset
+
+```bash
+python -m model.build_stage1_captions \
+    --images_dir data/PlantVillage-Dataset/raw/color \
+    --output_jsonl data/captions/captions.jsonl \
+    --shuffle \
+    --max_images 1000
+```
+
+### 7) Build Stage 2 VQA dataset
+
+```bash
+python -m model.build_stage2_vqa \
+    --images_dir data/PlantVillage-Dataset/raw/color \
+    --output_jsonl data/vqa/vqa.jsonl \
+    --pairs_per_image 4 \
+    --shuffle \
+    --max_images 250
+```
+
+### 8) Train Stage 1 projector
+
+```bash
+python -m model.train_projector \
     --stage 1 \
-    --base_model Qwen/Qwen2.5-7B-Instruct \
-    --lora_ckpt ./outputs/qwen_agri_lora \
-    --data_dir ./data/captions \
-    --output_dir ./checkpoints \
+    --base_model Qwen/Qwen2.5-0.5B-Instruct \
+    --lora_ckpt outputs/qwen_agri_lora \
+    --data_dir data/captions \
+    --output_dir checkpoints \
     --epochs 3 \
     --batch_size 4 \
-    --lr 2e-4
+    --lr 1e-3
+```
 
-# Stage 2 — fine-tune projector + visual LoRA on VQA pairs
-python train_projector.py \
+### 9) Train Stage 2 multimodal alignment
+
+```bash
+python -m model.train_projector \
     --stage 2 \
-    --base_model Qwen/Qwen2.5-7B-Instruct \
-    --lora_ckpt ./outputs/qwen_agri_lora \
-    --projector_ckpt ./checkpoints/projector_stage1.pt \
-    --data_dir ./data/vqa \
-    --output_dir ./checkpoints \
-    --epochs 5 \
-    --batch_size 2 \
-    --lr 1e-4
-
-# PowerShell (Windows)
-# Stage 1
-python train_projector.py `
-    --stage 1 `
-    --base_model Qwen/Qwen2.5-7B-Instruct `
-    --lora_ckpt .\outputs\qwen_agri_lora `
-    --data_dir .\data\captions `
-    --output_dir .\checkpoints `
-    --epochs 3 `
-    --batch_size 4 `
-    --lr 2e-4
-
-# Stage 2
-python train_projector.py `
-    --stage 2 `
-    --base_model Qwen/Qwen2.5-7B-Instruct `
-    --lora_ckpt .\outputs\qwen_agri_lora `
-    --projector_ckpt .\checkpoints\projector_stage1.pt `
-    --data_dir .\data\vqa `
-    --output_dir .\checkpoints `
-    --epochs 5 `
-    --batch_size 2 `
-    --lr 1e-4
+    --base_model Qwen/Qwen2.5-0.5B-Instruct \
+    --lora_ckpt outputs/qwen_agri_lora \
+    --projector_ckpt checkpoints/projector_stage1.pt \
+    --data_dir data/vqa \
+    --output_dir checkpoints \
+    --epochs 3 \
+    --batch_size 4 \
+    --lr 1e-3
 ```
 
----
-
-## Running the Server
+### 10) Run final multimodal inference
 
 ```bash
-# Default (uses checkpoints at ./checkpoints/)
-uvicorn server:app --host 0.0.0.0 --port 8000
-
-# Custom paths
-BASE_MODEL=mistralai/Mistral-7B-v0.1 \
-LORA_WEIGHTS=./checkpoints/agri_lora \
-PROJECTOR_PATH=./checkpoints/projector_stage2_best.pt \
-LOAD_4BIT=true \
-uvicorn server:app --host 0.0.0.0 --port 8000
+python -m model.inference \
+    --image "data/PlantVillage-Dataset/raw/color/Apple___Apple_scab/00075aa8-d81a-4184-8541-b692b78d398a___FREC_Scab 3335.JPG" \
+    --question "What disease is visible and how severe is it?" \
+    --base_model Qwen/Qwen2.5-0.5B-Instruct \
+    --agri_lora_ckpt outputs/qwen_agri_lora \
+    --visual_lora_ckpt checkpoints/visual_lora_best \
+    --projector_ckpt checkpoints/projector_stage2_best.pt
 ```
 
-API endpoints:
+## Notebook Workflow (Alternative)
 
-| Method | Path              | Description                          |
-|--------|-------------------|--------------------------------------|
-| GET    | `/health`         | Server + model status                |
-| POST   | `/analyze`        | `multipart/form-data`: image + question |
-| POST   | `/ask`            | `application/json`: text-only question |
-| POST   | `/analyze_base64` | `application/json`: base64 image + question |
+You can run the complete pipeline directly from `model/main.ipynb`.
 
----
+Important:
+- Some cells use Colab-style absolute paths (`/content/...`).
+- If running locally, replace those paths with repository-relative paths used above.
 
-## Running the Frontend
+## Optional: Run the Chatbot App
+
+There is an app under `app/mllm_chatbot/` with FastAPI + frontend.
+The backend currently imports an `agri_mllm` package; make sure it is available in your environment before starting the API.
+
+Install app dependencies:
 
 ```bash
-streamlit run app.py
+pip install -r app/mllm_chatbot/requirements.txt
 ```
 
-Opens at `http://localhost:8501`.
+Start API server:
 
-Features:
-- Image upload with metadata display
-- Suggested question buttons
-- Configurable temperature and max tokens
-- Text-only mode (no image needed)
-- Query history with thumbnails
-
----
-
-## Environment Variables
-
-| Variable          | Default                          | Description                  |
-|-------------------|----------------------------------|------------------------------|
-| `BASE_MODEL`      | `mistralai/Mistral-7B-v0.1`      | HuggingFace model ID or path |
-| `LORA_WEIGHTS`    | `./checkpoints/agri_lora`        | Agriculture LoRA directory   |
-| `PROJECTOR_PATH`  | `./checkpoints/projector_stage2_best.pt` | Projector weights    |
-| `LOAD_4BIT`       | `true`                           | 4-bit quantization (saves ~10GB) |
-| `DEVICE`          | `cuda`                           | `cuda` or `cpu`              |
-| `MAX_NEW_TOKENS`  | `512`                            | Generation length            |
-| `TEMPERATURE`     | `0.7`                            | Sampling temperature         |
-
----
-
-## Hardware Requirements
-
-| Setup                  | VRAM needed |
-|------------------------|-------------|
-| 7B model, 4-bit quant  | ~6 GB       |
-| 7B model, fp16         | ~14 GB      |
-| 13B model, 4-bit quant | ~10 GB      |
-
----
-
-## Quick Test (no frontend needed)
-
-```python
-from PIL import Image
-from model import AgriMultimodalModel
-
-m = AgriMultimodalModel(
-    llm_base_model="mistralai/Mistral-7B-v0.1",
-    lora_weights_path="./checkpoints/agri_lora",
-    projector_path="./checkpoints/projector_stage2_best.pt",
-    load_in_4bit=True,
-)
-
-img = Image.open("test_leaf.jpg")
-print(m.generate(img, "What disease is visible and what treatment do you recommend?"))
+```bash
+uvicorn app.mllm_chatbot.backend.main:app --host 0.0.0.0 --port 8000
 ```
+
+Open:
+- `http://127.0.0.1:8000/`
+
+## Output Artifacts
+
+- `outputs/qwen_agri_lora`: agriculture text LoRA adapter
+- `checkpoints/projector_stage1.pt`: stage 1 projector checkpoint
+- `checkpoints/projector_stage2_best.pt`: best stage 2 projector checkpoint
+- `checkpoints/visual_lora_best`: best visual LoRA adapter
+
+## Troubleshooting
+
+- If Hugging Face downloads are slow/rate-limited, set `HF_TOKEN`.
+- If CUDA OOM occurs, reduce `--batch_size` and/or `--max_images`.
+- Keep stage checkpoints so you can resume without restarting from scratch.
+- Ensure dataset path exists before stage data generation commands.

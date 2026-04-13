@@ -42,9 +42,9 @@
 
 \newcommand{\accentline}{\textcolor{AgroGold}{\rule{\linewidth}{1.1pt}}}
 
-\title{AgroVision}
+\title{Agri MLLM}
 \subtitle{A Multimodal Agricultural Assistant for Text, Image, and Audio Queries}
-\author{Mohamed Aymane Bourich-Mouad El Ansari-Youness Anouar}
+\author{M.\,Bourich \quad M.\,El Ansari \quad Y.\,Anouar}
 \date{April 2026}
 
 \begin{document}
@@ -95,8 +95,6 @@ Farmers, students, and agronomy practitioners need quick crop-health guidance wi
 \begin{columns}[T]
     \column{0.48\textwidth}
     \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{assets/llava15_architecture.png}
-
-    \column{0.48\textwidth}
     \small
     \begin{block}{Inspired by LLaVA-1.5}
     \begin{itemize}
@@ -105,6 +103,8 @@ Farmers, students, and agronomy practitioners need quick crop-health guidance wi
         \item efficient visual instruction tuning recipe
     \end{itemize}
     \end{block}
+    \column{0.48\textwidth}
+
 
     \begin{block}{Adapted to our setting}
     \begin{itemize}
@@ -115,35 +115,30 @@ Farmers, students, and agronomy practitioners need quick crop-health guidance wi
     \end{itemize}
     \end{block}
 \end{columns}
-\vspace{0.2em}
+\vspace{1}
 \tiny Inspired by \textit{Improved Baselines with Visual Instruction Tuning}; figure extracted from \texttt{papers/2310.03744v2.pdf}.
+
 \end{frame}
 
+
+
+
+
 \begin{frame}{Platform Vision}
-\begin{columns}[T]
-    \column{0.48\textwidth}
-    \begin{block}{Supported User Flows}
+
+    \begin{block}{A Multimodal ChatBot}
     \begin{itemize}
         \item \textbf{Image + text}: ``What disease is visible and how severe is it?''
         \item \textbf{Text only}: ``How much phosphorus per hectare should I apply to wheat?''
         \item \textbf{Audio only}: spoken agronomy question captured by the platform
+        \item \textbf{PDF files}
     \end{itemize}
     \end{block}
 
-    \column{0.48\textwidth}
-    \begin{block}{System Behavior}
-    \begin{itemize}
-        \item Audio is transcribed to text in the platform layer.
-        \item Text and transcribed audio use the same language-reasoning path.
-        \item Image + text uses the full multimodal path.
-    \end{itemize}
-    \end{block}
-\end{columns}
-\vspace{0.5em}
-\accentline
-\vspace{0.2em}
-\small The repository implements the language and vision-language core; this presentation adds audio as a product-level input channel.
+
+
 \end{frame}
+
 \begin{frame}{What the Repository Actually Implements}
 \begin{itemize}
     \item \textbf{Base language model}: \texttt{Qwen/Qwen2.5-0.5B-Instruct}
@@ -151,40 +146,143 @@ Farmers, students, and agronomy practitioners need quick crop-health guidance wi
     \item \textbf{Alignment module}: a two-layer \textbf{MLP projector}
     \item \textbf{Adaptation}: agriculture LoRA + visual LoRA
     \item \textbf{Training environment}: Google Colab T4 GPU
-    \item \textbf{Inference paths}:
-    \begin{itemize}
-        \item \texttt{generate\_text\_only(...)}
-        \item Image-conditioned generation using all visual patches
-    \end{itemize}
     \item \textbf{Deployment}: Streamlit frontend + FastAPI inference server
 \end{itemize}
 \end{frame}
 
-\begin{frame}{End-to-End System Architecture}
-\small
+\begin{frame}{End-to-End System Pipeline}
 \begin{center}
-\begin{tabular}{>{\RaggedRight\arraybackslash}p{0.18\linewidth} >{\centering\arraybackslash}p{0.06\linewidth} >{\RaggedRight\arraybackslash}p{0.66\linewidth}}
-Image input & $\rightarrow$ & CLIP ViT-Large/14 encodes the crop image into patch embeddings \\
-Patch tokens & $\rightarrow$ & 256 spatial tokens are kept; the CLS token is dropped \\
-Projector & $\rightarrow$ & MLP maps vision embeddings into the LLM hidden space \\
-Language input & $\rightarrow$ & User text or audio transcript is tokenized with Qwen2.5 \\
-Fusion & $\rightarrow$ & Visual embeddings are concatenated with text embeddings \\
-LLM + LoRA & $\rightarrow$ & Agriculture LoRA provides domain knowledge; visual LoRA improves multimodal reasoning \\
-Output & $\rightarrow$ & Diagnosis, severity estimate, management advice, or general agronomy answer
-\end{tabular}
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    box/.style={draw, rounded corners=3pt, align=center,
+                text width=2.5cm, minimum height=0.9cm,
+                inner sep=4pt},
+    teal/.style  ={box, fill=AgroLeaf!25,  draw=AgroLeaf},
+    purp/.style  ={box, fill=AgroGold!20,  draw=AgroGold},
+    grayb/.style ={box, fill=gray!12,      draw=gray!50},
+    greenb/.style={box, fill=AgroGreen!20, draw=AgroGreen},
+    arr/.style={->, thick, >=stealth},
+]
+
+%% Nodes (single row)
+\node[teal]   (user)      at (0,0)   {User Prompt};
+\node[purp]   (frontend)  at (3.5,0) {Frontend};
+\node[purp]   (api)       at (7,0)   {FastAPI Backend};
+\node[grayb]  (model)     at (10.5,0){Model Inference};
+\node[greenb] (resp)      at (14,0)  {Response};
+\node[teal]   (display)   at (17.5,0){Frontend Display};
+
+%% Arrows
+\draw[arr] (user) -- (frontend);
+\draw[arr] (frontend) -- (api);
+\draw[arr] (api) -- (model);
+\draw[arr] (model) -- (resp);
+\draw[arr] (resp) -- (display);
+
+\end{tikzpicture}
+}%
 \end{center}
-\vspace{0.4em}
-\begin{block}{Key design choice}
-The code keeps \textbf{all 256 image patches}, allowing the LLM to attend to lesion patterns, color changes, and texture regions rather than a single pooled visual token.
-\end{block}
+\end{frame}
+
+\begin{frame}{The Actual Model: From Input to Output}
+\begin{center}
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  box/.style={draw, rounded corners=5pt, align=center,
+              text width=2.0cm, minimum height=0.85cm, inner sep=4pt},
+  teal/.style ={box, fill=AgroLeaf!25,  draw=AgroLeaf},
+  purp/.style ={box, fill=AgroGold!15,  draw=AgroGold},
+  green/.style={box, fill=AgroGreen!15, draw=AgroGreen},
+  gray/.style ={box, fill=gray!10,      draw=gray!50},
+  amber/.style={box, fill=AgroSoil!15,  draw=AgroSoil},
+  stage/.style={font=\tiny\bfseries, text=gray!60},
+  arr/.style={->, thick, >=stealth, shorten >=2pt, shorten <=2pt},
+]
+
+%% ── Stage headers ────────────────────────────
+\node[stage] at (0,    7.5) {Input};
+\node[stage] at (3.5,  7.5) {Encoding};
+\node[stage] at (7.0,  7.5) {Projection};
+\node[stage] at (10.5, 7.5) {Fusion};
+\node[stage] at (13.8, 7.5) {Generation};
+
+%% ── Row 1: Image ─────────────────────────────
+\node[teal]  at (0,   6.0) (img)  {Crop image\\\tiny H×W×3};
+\node[teal]  at (3.5, 6.0) (clip) {CLIP ViT-L/14\\\tiny 256 patches};
+\node[green] at (7.0, 6.0) (mlp)  {MLP projector\\\tiny $d_v \to d_{llm}$};
+
+%% ── Row 2: Text ──────────────────────────────
+\node[purp]  at (0,   4.5) (txt)  {Text query\\\tiny raw string};
+\node[purp]  at (3.5, 4.5) (btok) {BPE tokenizer\\\tiny Qwen2.5};
+\node[purp]  at (7.0, 4.5) (emb)  {Token embed.\\\tiny ids $\to$ vectors};
+
+%% ── Row 3: Audio (merges into text row) ───────
+\node[amber] at (0,   3.0) (aud)  {Audio\\\tiny waveform};
+\node[amber] at (3.5, 3.0) (asr2) {ASR\\\tiny speech $\to$ text};
+
+%% ── Row 4: PDF ───────────────────────────────
+\node[amber] at (0,   1.5) (pdf2) {PDF upload\\\tiny $\leq$5\,MB};
+\node[amber] at (3.5, 1.5) (mup2) {PyMuPDF\\\tiny text + figs};
+
+%% ── Fusion node ──────────────────────────────
+\node[gray, text width=2.4cm, minimum height=1.1cm]
+             at (10.5, 5.3) (cat)  {Concat\\
+             \tiny [img\,tokens;\,text\,tokens]};
+
+%% ── LLM + output ─────────────────────────────
+\node[purp, text width=2.4cm]
+             at (10.5, 3.2) (llm2) {Qwen2.5 + LoRA\\\tiny Agri + Visual};
+\node[green] at (13.8, 3.2) (out2) {Output\\\tiny diagnosis + advice};
+
+%% ── Arrows row 1 ─────────────────────────────
+\draw[arr, AgroLeaf]  (img)  -- (clip);
+\draw[arr, AgroLeaf]  (clip) -- (mlp);
+\draw[arr, AgroGreen] (mlp)  -- (cat.west);
+
+%% ── Arrows row 2 ─────────────────────────────
+\draw[arr, AgroGold]  (txt)  -- (btok);
+\draw[arr, AgroGold]  (btok) -- (emb);
+\draw[arr, AgroGold]  (emb)  -- (cat.south west);
+
+%% ── Audio → tokenizer ────────────────────────
+\draw[arr, AgroSoil]  (aud)  -- (asr2);
+\draw[arr, AgroGold, dashed]  (asr2.north) --
+    node[right, font=\tiny, AgroGold]{transcript} (btok.south);
+
+%% ── PDF text → tokenizer; figures → projector ─
+\draw[arr, AgroGold, dashed]  (mup2.north) -- (btok.south east);
+\draw[arr, AgroLeaf, dashed]  (mup2.east)
+    to[out=0, in=270] (mlp.south)
+    node[near start, above, font=\tiny, AgroLeaf]{figures};
+
+%% ── Fusion → LLM → output ────────────────────
+\draw[arr, gray!70]   (cat)  -- (llm2);
+\draw[arr, AgroGreen] (llm2) -- (out2);
+
+%% ── Data-type annotations ────────────────────
+\node[font=\tiny, gray!60, align=center] at (0,   0.3)
+    {raw modality};
+\node[font=\tiny, gray!60, align=center] at (3.5, 0.3)
+    {encoded repr.};
+\node[font=\tiny, gray!60, align=center] at (7.0, 0.3)
+    {LLM-space embed.};
+\node[font=\tiny, gray!60, align=center] at (10.5,0.3)
+    {fused sequence};
+\node[font=\tiny, gray!60, align=center] at (13.8,0.3)
+    {token generation};
+
+\end{tikzpicture}
+}%
+\end{center}
 \end{frame}
 
 \begin{frame}{Training Pipeline in Three Steps}
 \begin{enumerate}
-    \item \textbf{Text-only domain adaptation}
+    \item \textbf{Stage 0 Text-only domain adaptation}
     \begin{itemize}
         \item Fine-tune a LoRA on agricultural QA text.
-        \item Dataset used in code: \texttt{KisanVaani/agriculture-qa-english-only}.
     \end{itemize}
     \item \textbf{Stage 1 visual alignment}
     \begin{itemize}
@@ -209,7 +307,7 @@ The pipeline first teaches the model agricultural language, then teaches image t
 \textbf{Component} & \textbf{Details} \\
 \midrule
 Train  & LoRA on base LLM \\
-Data   & Agriculture text corpus \\
+Data   & Agriculture text corpus: KisanVaani/agriculture-qa-english-only \\
 Loss   & Causal LM (next token prediction) \\
 Result & LLM that knows plant diseases, agronomic terminology \\
 \bottomrule
@@ -249,7 +347,7 @@ Result & LLM that knows plant diseases, agronomic terminology \\
 \midrule
 Freeze  & ViT + LLM \\
 Train   & MLP projector only \\
-Data    & (image, caption) pairs from disease dataset \\
+Data    & (image, caption) pairs from disease dataset (PlantVillage) \\
 Loss    & Causal LM on captions given image tokens \\
 Result  & Projector that speaks the LLM's embedding language \\
 Purpose & Alignment stage --- teach image tokens to look like text tokens \\
@@ -263,15 +361,7 @@ Purpose & Alignment stage --- teach image tokens to look like text tokens \\
 
     \column{0.34\textwidth}
     \small
-    \begin{block}{Stage 1}
-    \begin{itemize}
-        \item Frozen: ViT + LLM
-        \item Trained: projector only
-        \item Data: \textbf{1,000} caption pairs from PlantVillage
-        \item Captions auto-generated from disease class labels
-        \item Final loss: \textbf{0.0090}
-    \end{itemize}
-    \end{block}
+
     \begin{block}{Interpretation}
     This is the cleanest convergence phase in the pipeline and shows that the projector successfully learns the vision-to-language bridge.
     \end{block}
@@ -285,7 +375,7 @@ Purpose & Alignment stage --- teach image tokens to look like text tokens \\
 \midrule
 Freeze & ViT \\
 Train  & MLP projector + new LoRA layers in LLM \\
-Data   & (image, question, answer) triplets --- disease VQA \\
+Data   & (image, question, answer) triplets --- disease VQA (PlantVillage) \\
 Loss   & Causal LM on answers \\
 Result & Full multimodal agriculture assistant \\
 \bottomrule
@@ -303,14 +393,7 @@ Result & Full multimodal agriculture assistant \\
 
     \column{0.34\textwidth}
     \small
-    \begin{block}{Stage 2}
-    \begin{itemize}
-        \item Frozen: ViT + LLM backbone
-        \item Trained: projector + visual LoRA
-        \item Data: \textbf{1,000} PlantVillage VQA triplets
-        \item Final loss: \textbf{0.0141}
-    \end{itemize}
-    \end{block}
+
     \begin{block}{Interpretation}
     The first epoch is noisier because VQA is harder than captioning, but the run still converges cleanly by epoch 3.
     \end{block}
@@ -336,65 +419,174 @@ Stage 2 multimodal & epoch 3 & avg loss & 0.0141 \\
 \end{center}
 \vspace{0.4em}
 \begin{itemize}
-    \item HTML report summary: \textbf{8.8M trainable parameters}, about \textbf{1.75\%} of a 502M-parameter model.
+    \item Report summary: \textbf{8.8M trainable parameters}, about \textbf{1.75\%} of a 502M-parameter model.
     \item Stage 0 runtime reported: \textbf{1007 seconds} with about \textbf{7.15 samples/s}.
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Example Inference Story}
-\begin{block}{Text-only example from the report}
-\small
-Query: ``How much phosphorus per hectare should I apply to wheat?''
-\end{block}
-\vspace{0.3em}
-\begin{block}{Multimodal example from the report}
-\small
-Input image: infected apple leaf from the PlantVillage \texttt{Apple\_\_\_Apple\_scab} class \\
-Prompt: ``What disease is visible and how severe is it?''
-\end{block}
-\vspace{0.4em}
-\begin{itemize}
-    \item The  output identifies visible spots and lesions and provides disease-aware reasoning.
-    \item It also highlights an important limitation: the model recognizes disease symptoms but still hallucinates some pathogen details.
-    \item This demonstrates the shift from pure agronomy QA to image-grounded crop diagnosis, while still leaving room for factual calibration.
-\end{itemize}
-\end{frame}
+\begin{frame}{Audio Modality Integration}
 
-\begin{frame}{How Audio Fits the Platform}
 \begin{columns}[T]
-    \column{0.49\textwidth}
-    \begin{block}{User Experience}
+    \column{0.58\textwidth}
+    \begin{figure}
+    \centering
+    \resizebox{\linewidth}{!}{%
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        box/.style={draw, rounded corners=3pt, align=center,
+                    text width=1.8cm, minimum height=0.75cm,
+                    inner sep=4pt},
+        teal/.style  ={box, fill=AgroLeaf!25,  draw=AgroLeaf},
+        purp/.style  ={box, fill=AgroGold!20,  draw=AgroGold},
+        grayb/.style ={box, fill=gray!12,      draw=gray!50},
+        greenb/.style={box, fill=AgroGreen!20, draw=AgroGreen},
+        arr/.style={->, thick, >=stealth, shorten >=2pt, shorten <=2pt},
+    ]
+
+    %% ── Column 1: inputs (x=0) ──────────────────────────────────
+    \node[teal]  at (0,  1.5) (audio) {Audio input\\\tiny farmer speaks};
+    \node[purp]  at (0,  0.0) (text)  {Text input\\\tiny typed question};
+
+    %% ── Column 2: processing (x=3) ─────────────────────────────
+    \node[teal]  at (3,  1.5) (asr)  {ASR module\\\tiny speech-to-text};
+    \node[purp]  at (3,  0.0) (tok)  {Tokenizer\\\tiny Qwen2.5 BPE};
+
+    %% ── Column 3: output (x=6) ──────────────────────────────────
+    \node[grayb]  at (6,  0.0) (llm)  {LLM + LoRA\\\tiny Qwen2.5 adapters};
+    \node[greenb] at (6,  1.5) (out)  {Response\\\tiny diagnosis/advice};
+
+    %% ── Arrows ──────────────────────────────────────────────────
+    \draw[arr] (audio) -- (asr);
+    \draw[arr] (text)  -- (tok);
+
+    %% ASR drops down to tokenizer
+    \draw[arr, AgroGold] (asr) -- (tok)
+        node[midway, right, font=\tiny\itshape,
+             text=AgroGold, xshift=1pt] {transcript};
+
+    \draw[arr] (tok) -- (llm);
+    \draw[arr] (llm) -- (out);
+
+    %% ── Platform boundary dashed box ────────────────────────────
+    \begin{scope}[on background layer]
+        \node[draw=AgroLeaf, dashed, rounded corners=6pt,
+              fit=(audio)(asr)(tok),
+              inner sep=7pt,
+              label={[font=\tiny, color=AgroLeaf]above:platform layer}] {};
+    \end{scope}
+
+    \end{tikzpicture}
+    }%
+    \caption{\footnotesize Audio follows the same inference path as typed text once transcribed.}
+    \end{figure}
+
+    \column{0.39\textwidth}
+    \vspace{0.4em}
+    \begin{block}{Key points}
     \begin{itemize}
-        \item Farmer speaks a question in the field.
-        \item Platform records audio and runs speech-to-text.
-        \item Transcript is sent to the same assistant.
+        \item \textbf{ASR} lives in the platform layer not inside the model
+        \item Transcript enters the \textbf{same tokenizer} as typed text
+        \item Agriculture LoRA handles both typed and spoken queries unchanged
+        \item Audio is a new \textbf{entry interface}, not a new reasoning pathway
     \end{itemize}
     \end{block}
 
-    \column{0.49\textwidth}
-    \begin{block}{System Mapping}
-    \begin{itemize}
-        \item Audio only $\Rightarrow$ ASR transcript $\Rightarrow$ text-only inference
-        \item Image + text stays multimodal
-        \item Future extension: image + audio can become image + transcript
-    \end{itemize}
-    \end{block}
 \end{columns}
-\vspace{0.4em}
-%%\begin{alertblock}{Message for the audience}
-%%Audio support expands accessibility without changing the core reasoning backbone: it is a new input interface, not a separate model family.
-%%\end{alertblock}
+\end{frame}
+\begin{frame}{PDF Modality Integration}
+\begin{columns}[T]
+    \column{0.58\textwidth}
+    \vspace{0.4em}
+    \begin{center}
+    \resizebox{\linewidth}{!}{%
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        box/.style={draw, rounded corners=3pt, align=center,
+                    text width=2.0cm, minimum height=0.75cm,
+                    inner sep=4pt},
+        teal/.style  ={box, fill=AgroLeaf!25,  draw=AgroLeaf},
+        purp/.style  ={box, fill=AgroGold!20,  draw=AgroGold},
+        amber/.style ={box, fill=AgroSoil!20,  draw=AgroSoil},
+        grayb/.style ={box, fill=gray!12,      draw=gray!50},
+        greenb/.style={box, fill=AgroGreen!20, draw=AgroGreen},
+        arr/.style={->, thick, >=stealth, shorten >=2pt, shorten <=2pt},
+    ]
+
+    %% ── Column 1 (x=0) ──────────────────────────────────────────
+    \node[teal]  at (0,  1.5) (pdf)   {PDF upload\\\tiny max 5\,MB};
+    \node[purp]  at (0,  0.0) (check) {Size check\\\tiny PyMuPDF};
+
+    %% ── Column 2: two branches (x=3) ────────────────────────────
+    \node[purp]  at (3,  2.6) (text)  {Text extraction\\\tiny 8 pages · 2k chars};
+    \node[amber] at (3,  0.0) (fig)   {Figure extraction\\\tiny first 2 figures};
+
+    %% ── Column 3: processing (x=6) ──────────────────────────────
+    \node[purp]  at (6,  2.6) (trunc) {Token cap\\\tiny 1{,}200 tokens};
+    \node[amber] at (6,  0.0) (enc)   {Vision encoder\\\tiny $\geq$64$\times$64 px};
+
+    %% ── Column 4: fusion + output (x=9) ─────────────────────────
+    \node[grayb]  at (9,  1.5) (fuse) {Fusion\\\tiny text + figures};
+    \node[greenb] at (9,  3.2) (out)  {LLM answer\\\tiny multimodal};
+
+    %% ── Arrows ──────────────────────────────────────────────────
+    \draw[arr] (pdf)   -- (check);
+    %% check splits into two branches
+    \draw[arr] (check) -- (text)
+        node[midway, left, font=\tiny, xshift=-2pt] {};
+    \draw[arr] (check) -- (fig);
+
+    \draw[arr] (text)  -- (trunc);
+    \draw[arr] (fig)   -- (enc)
+        node[midway, above, font=\tiny\itshape,
+             text=AgroSoil] {if multimodal};
+
+    \draw[arr] (trunc) -- (fuse);
+    \draw[arr] (enc)   -- (fuse);
+    \draw[arr] (fuse)  -- (out);
+
+    %% ── Platform boundary dashed box ────────────────────────────
+    \begin{scope}[on background layer]
+        \node[draw=AgroLeaf, dashed, rounded corners=6pt,
+              fit=(pdf)(check)(text)(fig)(trunc)(enc),
+              inner sep=7pt,
+              label={[font=\tiny, color=AgroLeaf]above:platform layer}] {};
+    \end{scope}
+
+    \end{tikzpicture}
+    }%
+    \end{center}
+
+    \column{0.39\textwidth}
+    \vspace{0.4em}
+    \begin{block}{Key points}
+    \begin{itemize}
+        \item PDFs capped at \textbf{5\,MB}; parsed with PyMuPDF
+        \item Text: first \textbf{8 pages}, 2{,}000 chars/page, \textbf{1{,}200 token} cap
+        \item Figures: first \textbf{2 figures}, images $<$64$\times$64 px ignored
+        \item Figures encoded by the \textbf{vision encoder} and passed through the PDF figure projector
+        \item Text and figure tokens \textbf{fused} with the user question before the LLM
+    \end{itemize}
+    \end{block}
+
+\end{columns}
+\end{frame}
+\begin{frame}{Demo - Text Only}
+\includegraphics[width=\textwidth]{demo/txt.png}
+\end{frame}
+\begin{frame}{Demo - Image \& Text}
+\includegraphics[width=\textwidth]{demo/img-txt0.png}
+
+\end{frame}
+\begin{frame}{Demo - Image \& Text}
+\includegraphics[width=\textwidth]{demo/img-txt1.png}
+\end{frame}
+\begin{frame}{Demo - Audio}
+\includegraphics[width=\textwidth]{demo/audio.png}
+\end{frame}
+\begin{frame}{Demo - PDF File}
+\includegraphics[width=\textwidth]{demo/pdf.png}
 \end{frame}
 
-\begin{frame}{Why This Design Is Practical}
-\begin{itemize}
-    \item \textbf{Efficient}: LoRA keeps training lightweight relative to full fine-tuning.
-    \item \textbf{Modular}: vision encoder remains frozen; only projector and adapters are trained.
-    \item \textbf{Accessible}: one platform supports typed, visual, and spoken interaction.
-    \item \textbf{Deployable}: repository references Streamlit frontend and API-based serving.
-    \item \textbf{Domain-focused}: agricultural QA knowledge is injected before multimodal training.
-\end{itemize}
-\end{frame}
 
 \begin{frame}{Current Limitations}
 \begin{itemize}
@@ -419,7 +611,7 @@ Prompt: ``What disease is visible and how severe is it?''
 
 \begin{frame}{Takeaway}
 \begin{block}{Final Message}
-AgroVision is a strong prototype of a \textbf{multimodal agricultural assistant}:
+Agri MLLM is a strong prototype of a \textbf{multimodal agricultural assistant}:
 \begin{itemize}
     \item trained first on agricultural text knowledge,
     \item aligned to \textbf{PlantVillage} crop-disease images,
@@ -429,6 +621,18 @@ AgroVision is a strong prototype of a \textbf{multimodal agricultural assistant}
 \vspace{0.5em}
 \centering
 \Large\textcolor{AgroGreen}{One assistant, multiple field-friendly ways to ask for help.}
+\end{frame}
+\begin{frame}{References}
+\begin{itemize}
+    \item Liu, H., Li, C., Li, Y., \& Lee, Y. J. (2024).  
+    \textit{Improved Baselines with Visual Instruction Tuning}.  
+    arXiv:2310.03744.  
+    \url{https://arxiv.org/abs/2310.03744}
+    
+    \item Code repository:  
+    \url{https://github.com/Uness10/HopefullyItWorks}
+    \item Course Lectures
+\end{itemize}
 \end{frame}
 
 \end{document}
