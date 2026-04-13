@@ -197,6 +197,10 @@ Open:
 
 ## Output Artifacts
 
+Note:
+- `outputs/` and `checkpoints/` are heavy directories and are not pushed to the repository.
+- You must generate them locally by running the training pipeline.
+
 - `outputs/qwen_agri_lora`: agriculture text LoRA adapter
 - `checkpoints/projector_stage1.pt`: stage 1 projector checkpoint
 - `checkpoints/projector_stage2_best.pt`: best stage 2 projector checkpoint
